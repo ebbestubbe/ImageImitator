@@ -32,14 +32,7 @@ class Image:
         self.image[rr,cc] -= c.color
         return c
         #print("circle removed: p0: {0}; p1: {1}; r: {2}, c: {3}".format(c.p0,c.p1,c.r,c.color))
-    """
-    def shuffle(self,index):
-        c = self.pop_circle(index)
-        p0 = random.randint(0,self.image.shape[0])
-        p1 = random.randint(0,self.image.shape[1])
-        c = Circle(p0,p1,c.r,c.color)
-        self.add_circle(c)
-    """
+
     def get_normalized_image(self):
         
         #maxwith = np.zeros(self.image.shape)

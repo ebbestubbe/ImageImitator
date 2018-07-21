@@ -137,27 +137,29 @@ def random_solve_build():
     target = io.imread(testfolder + targetname, as_gray=True)
     besterror = target.shape[0]*target.shape[1]
     
-    n_circles = 10000
+    n_circles = 10
     trial = Image(target.shape)
-    #for j in range(10):
-    #print("adding: " + str(j))
-    #n_before = len(trial.circles)
     it = []
     errors = []
-    for i in range(n_circles):
-        circle = generate_random_circle(target.shape)
-        trial.add_circle(circle)
-        trial_normalized = trial.get_normalized_image()
-        error = get_error(trial_normalized,target)
-        if(error<besterror):
-            print("improved to: " + str(error))
-            it.append(i)
-            errors.append(error)
-            besterror = error
-        else:
-            trial.pop_circle()
-    #n_after = len(trial.circles)
-        """
+    for j in range(10):
+        print("adding: " + str(j))
+        n_before = len(trial.circles)
+            
+        for i in range(n_circles):
+                
+            circle = generate_random_circle(target.shape)
+            trial.add_circle(circle)
+            trial_normalized = trial.get_normalized_image()
+            error = get_error(trial_normalized,target)
+            if(error<besterror):
+                print("improved to: " + str(error))
+                #it.append(i)
+                #errors.append(error)
+                besterror = error
+            else:
+                trial.pop_circle()
+        n_after = len(trial.circles)
+        
         print("removing:")
         if(n_after != n_before):
             for i in reversed(range(len(trial.circles))):
@@ -171,9 +173,22 @@ def random_solve_build():
                 else:
                     trial.add_circle(circle)
         """
+        for i in reversed(range(len(trial.circles))):
+            trial_normalized = trial.get_normalized_image()
+            error = get_error(trial_normalized,target)
+            
+            c_old = trial.pop_circle(i)
+            trial_normalized = trial.get_normalized_image()
+            error_smaller = get_error(trial_normalized,target)
+            
+            while(c_old.r>2):
+        """
+
+        
+        
     print("number of circles: "  + str(len(trial.circles)))
-    plt.plot(it,errors,'.')
-    plt.savefig(testfolder + 'errortrace_rose.png')
+    #plt.plot(it,errors,'.')
+    #plt.savefig(testfolder + 'errortrace_rose.png')
     io.imsave(testfolder + 'random_solution_rose.png',trial.get_normalized_image())
     io.imsave(testfolder + 'randomsolution_error_rose.png',make_error_image(target,trial.get_normalized_image()))    
 
@@ -218,7 +233,27 @@ def shuffle_solver():
     io.imsave(testfolder + 'shuffle_solution_rose.png',trial.get_normalized_image())
     io.imsave(testfolder + 'shuffle_solution_error_rose.png',make_error_image(target,trial.get_normalized_image()))
 
+def genetic_algorithm_solver():
+    testfolder = 'testimages\\'
+    targetname = 'Rose.jpeg'
+    target = io.imread(testfolder + targetname, as_gray=True)
+
+    n_pop = 100
+
+    #initialize population
+    max_iterations = 100
+    #for i in range(max_iterations):
+         #evaluate fitness
+         #select
+         #crossover
+         #mutate
+
+
+
+    
+
 if __name__ == "__main__":
-	shuffle_solver()
-    #random_solve_build()
+	#shuffle_solver()
+    random_solve_build()
     #test_full_creation()
+    #genetic_algorithm_solver()
