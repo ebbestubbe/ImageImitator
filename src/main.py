@@ -2,6 +2,7 @@ import numpy as np
 from skimage import io, draw
 from image import Image
 from circle import Circle, generate_random_circle
+from circles import Circles
 import random
 import time
 import matplotlib.pyplot as plt
@@ -143,7 +144,7 @@ def random_solve_build():
     errors = []
     for j in range(10):
         print("adding: " + str(j))
-        n_before = len(trial.circles)
+        n_before = trial.ncircles
             
         for i in range(n_circles):
                 
@@ -158,11 +159,11 @@ def random_solve_build():
                 besterror = error
             else:
                 trial.pop_circle()
-        n_after = len(trial.circles)
+        n_after = trial.ncircles()
         
         print("removing:")
         if(n_after != n_before):
-            for i in reversed(range(len(trial.circles))):
+            for i in reversed(range(trial.ncircles())):
                 circle = trial.pop_circle(i);
 
                 trial_normalized = trial.get_normalized_image()
@@ -186,7 +187,7 @@ def random_solve_build():
 
         
         
-    print("number of circles: "  + str(len(trial.circles)))
+    print("number of circles: "  + str(trial.ncircles()))
     #plt.plot(it,errors,'.')
     #plt.savefig(testfolder + 'errortrace_rose.png')
     io.imsave(testfolder + 'random_solution_rose.png',trial.get_normalized_image())
@@ -238,22 +239,110 @@ def genetic_algorithm_solver():
     targetname = 'Rose.jpeg'
     target = io.imread(testfolder + targetname, as_gray=True)
 
-    n_pop = 100
+    n_pop = 10
+    n_circles = 300
+    trials = [None for i in range(n_pop)]
+    fitness = [None for i in range(n_pop)]
+    #for j in range(n_pop):
+    for j in range(n_pop):
+        circles = Circles()
+        for i in range(n_circles):
+            circles.add_circle(generate_random_circle(target.shape))
+        trial = Image(target.shape,circles,background = np.sum(target)/(target.shape[0]*target.shape[1]))
+        trials[j] = trial
+        #fitness.append(get_error(target,trial.get_normalized_image()))
+        #print(fitness[j])
+    #io.imsave(testfolder + 'genetic_0.png',trials[0].get_normalized_image())
+    #io.imsave(testfolder + 'genetic_1.png',trials[-1].get_normalized_image())
+        
+
+    #population = []
 
     #initialize population
-    max_iterations = 100
-    #for i in range(max_iterations):
-         #evaluate fitness
-         #select
-         #crossover
-         #mutate
+    max_iterations = 1000
+    for i in range(max_iterations):
+        print("i: " + str(i))
+        
+        if(i%10 == 0):
+            io.imsave(testfolder + 'genetic_rose_' + str(i) +'.png',trials[0].get_normalized_image2())
+        #evaluate fitness
+        for j in range(n_pop):
+            fitness[j] = get_error(target,trials[j].get_image())
+        fitness,trials = (list(t) for t in zip(*sorted(zip(fitness,trials))))
+        
+        print("fit best: " + str(fitness[0]) + "; fit worst: " + str(fitness[-1]) + "fit avg: " + str(np.mean(fitness)))
+        #print("fit: " + str(fitness[0]))
+        
+        #select
+        new_trials = []
+        n_select = 4*n_pop//10
+        if(n_select%2 == 1):
+            n_select+=1
+        n_children = n_select
+        n_keep = n_pop-n_children-n_select
+        
 
-
-
+        #crossover    
+        for j in range(n_select//2):
+            #print("cross 1 " + str(2*j))
+            #print("cross 2 " + str(2*j+1))
+            child0,child1 = crossover(trials[2*j],trials[2*j+1])
+            new_trials.append(trials[2*j])
+            new_trials.append(trials[2*j+1])
+            new_trials.append(child0)
+            new_trials.append(child1)
+            
+        for j in range(n_select,n_select + n_keep):
+            #print("keep " + str(j)) #first
+            new_trials.append(trials[j])
+        #for j in range(n_select + n_keep,n_children + n_select + n_keep):
+            #print("children " + str(j)) #first
+        
+        mutate = np.random.choice(n_pop,n_pop//3,replace=False)
+        for j in mutate:
+            if(j == 0):
+                continue
+            for circle in new_trials[j].circles.circles:
+                circle.r+= random.randint(0,2)*2-1
+                circle.r = min([max([circle.r,1]),30])
+                circle.color = circle.color*random.choice([0.95,1.05])                        
+        
+        trials = new_trials
     
+    for j in range(n_pop):
+        fitness[j] = get_error(target,trials[j].get_image())
+    fitness,trials = (list(t) for t in zip(*sorted(zip(fitness,trials))))
+        
+    io.imsave(testfolder + 'genetic_rose_worst.png',trials[-1].get_normalized_image2())
+    
+    io.imsave(testfolder + 'genetic_rose_best.png',trials[0].get_normalized_image2())
 
+
+
+def crossover(image0, image1):
+    #print(len(image0.circles.circles))
+    #point = random.randint(0,len(image1.circles.circles))
+    circles_child0 = []
+    circles_child1 = []
+    for i in range(len(image0.circles.circles)):
+        flip = random.randint(0,2)
+        if(flip == 0):
+            circles_child0.append(image0.circles.circles[i])
+            circles_child1.append(image1.circles.circles[i])
+        else:
+            circles_child0.append(image1.circles.circles[i])
+            circles_child1.append(image0.circles.circles[i])
+    #make Circles wrapper:
+    circles_child0_wrapper = Circles(circles_child0)
+    circles_child1_wrapper = Circles(circles_child1)
+    
+    child0 = Image(image0.get_shape(),circles_child0_wrapper)
+    child1 = Image(image0.get_shape(),circles_child1_wrapper)
+    return child0,child1
+    
 if __name__ == "__main__":
 	#shuffle_solver()
-    random_solve_build()
+    #random_solve_build()
+    genetic_algorithm_solver()
     #test_full_creation()
     #genetic_algorithm_solver()
