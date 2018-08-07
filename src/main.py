@@ -305,7 +305,7 @@ def genetic_algorithm_solver():
             for circle in new_trials[j].circles.circles:
                 circle.r+= random.randint(0,2)*2-1
                 circle.r = min([max([circle.r,1]),30])
-                circle.color = circle.color*random.choice([0.95,1.05])                        
+                circle.color = circle.color*random.choice([0.95,1.05])
         
         trials = new_trials
     
