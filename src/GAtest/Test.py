@@ -8,17 +8,32 @@ import math
 class func_eggholder():
     def __init__(self):
         self.name="Eggholder"
-        n_calls=0
+        self.n_calls=0
+        self.n_dim = 2
         self.bound_lower = -512
         self.bound_upper = 512
     def call(self,x):
+        assert(x.shape[1] == self.n_dim)
+        """
+        print((x >=self.bound_lower))
+        if(not (x >=self.bound_lower).all()):
+            print(x)
+
+        print((x <=self.bound_upper))        
+        if(not (x <=self.bound_upper).all()):
+            print(x)
+        """
+        assert((x >=self.bound_lower).all())
+        assert((x <=self.bound_upper).all())
+        
         self.n_calls+=1*x.shape[0]
         return -(x[:,1]+47)*np.sin(np.sqrt(np.abs(x[:,0]/2+x[:,1]+47))) - x[:,0]*np.sin(np.sqrt(np.abs(x[:,0]-x[:,1]-47)))
 
 class func_rosenbrock():
-    def __init__(self):
+    def __init__(self,n_dim):
         self.name="Rosenbrock"
         self.n_calls = 0
+        self.n_dim = n_dim
         self.bound_lower = -10
         self.bound_upper = 10
     def call(self,x):
@@ -32,8 +47,9 @@ class func_rosenbrock():
             
         return s
 class func_sphere():
-    def __init__(self):
+    def __init__(self,n_dim):
         self.name = "Sphere"
+        self.n_dim = n_dim
         self.n_calls = 0
         self.bound_lower = -10
         self.bound_upper = 10
@@ -42,10 +58,10 @@ class func_sphere():
         return np.sum(np.power(x,2),axis=1)
 
 class func_rastrigin():
-    def __init__(self):
-        self.name = "Sphere"
+    def __init__(self,n_dim):
         self.name = "Rastrigin"
         self.n_calls = 0
+        self.n_dim = n_dim
         self.bound_lower = -5.12
         self.bound_upper = 5.12
     def call(self,x):
@@ -61,9 +77,10 @@ def crossover(x0,x1):
     c1 = np.concatenate([x1[:crosspoint], x0[crosspoint:] ])
     return c0,c1
 
-def GA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
+def GA(n_pop,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
     start = time.clock()
     func.n_calls = 0
+    n_dim = func.n_dim
     A = np.random.rand(n_pop,n_dim)*(func.bound_upper-func.bound_lower) + func.bound_lower
     max_calls = n_iterations*n_pop
     
@@ -74,7 +91,6 @@ def GA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
     n_calls = []
     for i in range(n_iterations):
         #evaluate fitness
-
         fitness = func.call(A)
         p = fitness.argsort()
         fitness = fitness[p]
@@ -106,9 +122,11 @@ def GA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
             if(j == 0):
                 continue
             A[j,:] = A[j,:]*np.random.rand(n_dim)*((2*mutation_scale) - mutation_scale+1.0) + np.random.rand(n_dim)*(2*mutation_add) - mutation_add
+
             #A[j,:] += np.random.rand(n_dim)*(2*mutation_add) - mutation_add
             #A[j,:] = A[j,:]*np.random.rand(n_dim)*((2*mutation_scale) - mutation_scale+1.0)
         #for j in range(n_select//2):
+        A = clamp(A,func.bound_lower,func.bound_upper)
     
     #evaluate for the last iteration as well
     fitness = func.call(A)
@@ -131,9 +149,10 @@ def GA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
     #plt.plot(n_calls,np.log(best_ys),'.')
     #plt.show()
     return best_xs[-1],n_calls, best_ys
-def MOGA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
+def MOGA(n_pop,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01):
     start = time.clock()
     func.n_calls = 0
+    n_dim = func.n_dim
     #func = func_rosenbrock()
     #make population, rows are population members, columns are dimensions
     A = np.random.rand(n_pop,n_dim)*(func.bound_upper-func.bound_lower) + func.bound_lower
@@ -195,10 +214,7 @@ def MOGA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01
                 A[j,sigma_order[k]] *= random.gauss(1.0,sigma[sigma_order[k]])
                 A[j,sigma_order[k]] += random.gauss(0.0,sigma[sigma_order[k]])
                 
-        minwith = np.ones(A.shape)*func.bound_upper
-        maxwith = np.ones(A.shape)*func.bound_lower
-        A = np.minimum(A,minwith)
-        A = np.maximum(A,maxwith)
+        A = clamp(A,func.bound_lower,func.bound_upper)
     fitness = func.call(A)
     p = fitness.argsort()
     fitness = fitness[p]
@@ -215,14 +231,14 @@ def MOGA(n_pop,n_dim,n_iterations,func,mutation_scale = 0.1, mutation_add = 0.01
     #print("MOGA runtime : " + str(end-start))
     return best_xs[-1],n_calls, best_ys
 def test(func):
-    n_pop = 1000
-    n_dim = 10
-    n_iterations = 100
+    n_pop = 100
+    #n_dim = 10
+    n_iterations = 10
 
     mutation_scale = 0.5
     mutation_add = .1
-    GA_x, GA_calls, GA_y = GA(n_pop,n_dim,n_iterations,func = func,mutation_scale = mutation_scale,mutation_add=mutation_add)
-    MOGA_x,MOGA_calls, MOGA_y = MOGA(n_pop,n_dim,n_iterations, func=func,mutation_scale = mutation_scale,mutation_add=mutation_add)
+    GA_x, GA_calls, GA_y = GA(n_pop,n_iterations,func = func,mutation_scale = mutation_scale,mutation_add=mutation_add)
+    MOGA_x,MOGA_calls, MOGA_y = MOGA(n_pop,n_iterations, func=func,mutation_scale = mutation_scale,mutation_add=mutation_add)
     print(func.name)
     print("GA: " + str(GA_y[-1]))
     print("MOGA: " + str(MOGA_y[-1]))
@@ -234,9 +250,18 @@ def test(func):
     plt.show()
     """
 
+#Sets all the values in A below 'lower' set to lower. Likewise for 'upper'
+def clamp(A,lower,upper):
+    minwith = np.ones(A.shape)*upper
+    maxwith = np.ones(A.shape)*lower
+    B = np.minimum(A,minwith)
+    B = np.maximum(B,maxwith)
+    return B
+
 def main():
-    test(func_rastrigin())
-    test(func_sphere())
+    n_dim = 2
+    test(func_rastrigin(n_dim = n_dim))
+    test(func_sphere(n_dim = n_dim))
     test(func_eggholder())
     
     
@@ -258,16 +283,13 @@ def main():
     """
     
 
-
 if __name__ == "__main__":
     """
-    func = func_rastrigin() 
+    func = func_eggholder() 
 
     a = np.array([[3.1249,1.3942],[1,0],[1,1]])
     print(func.call(a))
-    print(func.n_calls)
-
-    b = np.array([[1.3942,0,3.1249],[5,-2,0],[-3,1,0]])
+    b = np.array([[1.3942,3.1249],[-2,0],[-3,1]])
     print(func.call(b))
     print(func.n_calls)
     """
